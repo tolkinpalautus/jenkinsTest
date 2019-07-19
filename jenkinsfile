@@ -18,7 +18,6 @@ pipeline {
             steps {
                     sh '''
                         echo 'Building docker\'
-                        docker stop $(docker ps -a -q --filter ancestor=mydockerimage --format="{{.ID}}") || true 
                         curl "https://tomcat.apache.org/tomcat-8.0-doc/appdev/sample/sample.war" --output sample.war
                         docker build --tag mydockerimage .
     	            '''                
