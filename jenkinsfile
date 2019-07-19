@@ -1,0 +1,72 @@
+#!groovy​
+pipeline {
+    agent {
+        label 'master'
+    }
+
+    options {
+        timeout(time: 15, unit: 'MINUTES')
+        timestamps()
+        //other handy options depending on needs' since we are archiving build artifacts in jenkins
+        buildDiscarder(logRotator(numToKeepStr: '30', artifactNumToKeepStr: '5'))
+        disableConcurrentBuilds()
+
+    }
+
+    stages {
+        stage('Build') {
+            steps {
+                    sh '''
+                        echo 'Building docker\'
+                        docker stop $(docker ps -a -q --filter ancestor=mydockerimage --format="{{.ID}}") || true 
+                        curl "https://tomcat.apache.org/tomcat-8.0-doc/appdev/sample/sample.war" --output sample.war
+                        docker build --tag mydockerimage .
+    	            '''                
+    	        
+            }
+        }
+
+        stage('Run') {
+            steps {
+                    sh '''
+                        echo 'Running docker image\'
+                        docker stop $(docker ps -a -q --filter ancestor=mydockerimage --format="{{.ID}}") || true 
+                        docker run -d -it --rm -p 8086:8080 mydockerimage
+       	            '''                
+    	        
+            }
+        }
+
+        stage('Test') {
+            steps {
+                    sh '''
+                        echo 'test sample site is available, print to screen\'
+                        wget http://localhost:8086/sample
+                        cat sample
+    	            '''  
+                
+            }
+        }
+
+        stage('Wait') {
+            steps {
+                    sh '''
+                        echo 'Wait 5 mins before stopping docker image\'
+                        sleep 5m
+    	            '''
+
+            }
+        }
+
+        stage('Stopping image') {
+            steps {
+                    sh '''
+                        echo 'Stopping image\'
+                        docker stop $(docker ps -a -q --filter ancestor=mydockerimage --format="{{.ID}}") || true
+    	            '''       
+            }
+        }
+
+    }
+
+}
